@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click and Draw Lines</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #drawing-board {
+            background-color: #f0f0f0;
+            cursor: crosshair;
+        }
+    </style>
+    <!-- Minified version -->
+    <!-- <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css"> -->
+    <style>
+        .loader {
+            border: 16px solid #f3f3f3;
+            /* Light grey */
+            border-top: 16px solid #3498db;
+            /* Blue */
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button onclick="setmode(`line`);">line</button>
+    <button onclick="setmode(`circle`);">circle</button>
+    <button onclick="setmode(`coincident`);">coin</button>
+    <button onclick="setmode(`congruent`);">line</button>
+    <svg id="drawing-board" width="100%" height="100%">
+        <!-- You can draw lines here -->
+    </svg>
+    <div id="loader" class="loader"></div>
+    <div id="latex">
+
+    </div>
+    <div id="repl">
+
+    </div>
+    <textarea id="repl-in" rows="5" cols="33"></textarea>
+    <button onclick="replrun()">Run</button>
+
+    <script>
+        let isDrawing = false;
+        let startX, startY, endX, endY;
+        let lines = [];
+        let line = null;
+        let mode = null;
+        let actionstack = [];
+        let highlight = [];
+
+        function setmode(mode) {
+            mode = mode;
+        }
+
+        const drawingBoard = document.getElementById('drawing-board');
+
+        drawingBoard.addEventListener('mousedown', (e) => {
+            if (mode == "line") {
+                isDrawing = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('style', 'stroke: black; stroke-width: 2px;');
+                line.setAttribute('x1', startX);
+                line.setAttribute('y1', startY);
+                line.setAttribute('x2', startX);
+                line.setAttribute('y2', startY);
+
+
+                drawingBoard.appendChild(line);
+
+                lines.push(line);
+            }
+        });
+
+        drawingBoard.addEventListener('mousemove', (e) => {
+            if (isDrawing === true) {
+                endX = e.clientX;
+                endY = e.clientY;
+                line.setAttribute('x2', endX);
+                line.setAttribute('y2', endY);
+            }
+        });
+
+        drawingBoard.addEventListener('mouseup', () => {
+            isDrawing = false;
+            line = null;
+
+        });
+
+        drawingBoard.addEventListener('mouseleave', () => {
+            isDrawing = false;
+            if (line != null) {
+
+
+                line.addEventListener('mouseover', () => {
+                    // Change the appearance of the line on hover
+                    line.setAttribute('style', 'stroke: red; stroke-width: 4px;');
+                });
+
+                line.addEventListener('mouseout', () => {
+                    // Change the appearance back to the original on hover-out
+                    line.setAttribute('style', 'stroke: black; stroke-width: 2px;');
+                });
+                line = null;
+            }
+        });
+    </script>
+
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <script>
+        async function main() {
+            let pyodide = await loadPyodide();
+            // Pyodide is now ready to use...
+            console.log(pyodide.runPython(`
+                        import sys
+                        sys.version
+                        `));
+            pyodide.runPython("print(1 + 2)");
+            await pyodide.loadPackage("micropip");
+            const micropip = pyodide.pyimport("micropip");
+            await micropip.install('sympy');
+            document.getElementById("loader").remove();
+            let latex = pyodide.runPython(
+                `
+                import sympy
+                sympy.latex(sympy.pi)
+                `
+            );
+            let latexdiv = document.getElementById("latex")
+            latexdiv.innerHTML = `$$ ${latex} $$`
+            MathJax.typeset();
+
+
+        };
+        main();
+    </script>
+</body>
+
+</html>
